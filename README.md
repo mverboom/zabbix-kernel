@@ -85,7 +85,7 @@ configuration above. The template group is `Templates`.
 | Macro | Default | Purpose |
 |---|---|---|
 | `{$KERNEL_CVE_CVSS}` | *(empty)* | optional suffix appended to the High alert name; maintained by `kernel-cve-cvss-push` |
-| `{$KERNEL_CVE_CVSS_ENABLED}` | `0` | set to `1` on hosts (or the template) that should get the CVSS suffix |
+| `{$KERNEL_CVE_CVSS_ENABLED}` | `0` | set to `1` on the hosts that should get the CVSS suffix (host-level; see the note on restricted tokens) |
 | `{$KERNEL_BOOT_ENABLED}` | `0` | set to `1` to enable the rEFInd boot-order check |
 
 Because `{$KERNEL_CVE_CVSS}` defaults to empty, the High alert reads
@@ -162,11 +162,16 @@ Schedule it, for example every 30 minutes:
 */30 * * * * /usr/local/sbin/kernel-cve-cvss-push >> /var/log/kernel-cve-cvss-push.log 2>&1
 ```
 
-Enable the feature for a host (or the whole template) by setting
-`{$KERNEL_CVE_CVSS_ENABLED}=1`. Run once with `--dry-run` first to see what it
-would change. The cache lives at `/var/lib/zabbix/kernel-cve-cvss-cache.json`;
-override the paths with the `KERNEL_CVE_CVSS_CONF` and `KERNEL_CVE_CVSS_CACHE`
-environment variables.
+Enable the feature by setting `{$KERNEL_CVE_CVSS_ENABLED}=1`. Run once with
+`--dry-run` first to see what it would change. The cache lives at
+`/var/lib/zabbix/kernel-cve-cvss-cache.json`; override the paths with the
+`KERNEL_CVE_CVSS_CONF` and `KERNEL_CVE_CVSS_CACHE` environment variables.
+
+Set the macro **per host**. A Zabbix role that is restricted to host groups
+cannot read template-level user macros (`usermacro.get` returns host macros
+only, and `template.get` is denied), so a value set on the template is
+invisible to the script and has no effect. A host-level macro always works;
+the script's fallback when no macro is visible is disabled.
 
 ### Monitoring the script (optional)
 
