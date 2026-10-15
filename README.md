@@ -34,8 +34,13 @@ Triggers:
 | Severity | Name | Condition |
 |---|---|---|
 | Info | `Kernel update available` | a newer kernel is installed and it fixes no known CVEs |
-| High | `Kernel update available ({ITEM.VALUE} cve's{$KERNEL_CVE_CVSS})` | a newer kernel is installed and fixes one or more CVEs |
+| High | `Kernel security update available` | a newer kernel is installed and fixes one or more CVEs |
 | Disaster | `Newest kernel is not the one rEFInd will boot` | the newest installed kernel is not the one with the newest boot file mtime (opt-in) |
+
+The High problem's operational data carries the live CVE count and, once enabled,
+the highest CVSS score: `From <running> to version <newest> (N cve's, highest
+CVSS x.y).` The names are static because Zabbix captures a problem name when the
+alert fires.
 
 `kernel.cves` is derived from the kernel package changelogs shipped on the host
 (Debian/Ubuntu/Proxmox `changelog.Debian.gz`, or `rpm -q --changelog` on the
@@ -84,12 +89,12 @@ configuration above. The template group is `Templates`.
 
 | Macro | Default | Purpose |
 |---|---|---|
-| `{$KERNEL_CVE_CVSS}` | *(empty)* | optional suffix appended to the High alert name; maintained by `kernel-cve-cvss-push` |
+| `{$KERNEL_CVE_CVSS}` | *(empty)* | optional suffix appended to the High alert's operational data; maintained by `kernel-cve-cvss-push` |
 | `{$KERNEL_CVE_CVSS_ENABLED}` | `0` | set to `1` on the hosts that should get the CVSS suffix (host-level; see the note on restricted tokens) |
 | `{$KERNEL_BOOT_ENABLED}` | `0` | set to `1` to enable the rEFInd boot-order check |
 
-Because `{$KERNEL_CVE_CVSS}` defaults to empty, the High alert reads
-`Kernel update available (12 cve's)` until the CVSS add-on is set up.
+Because `{$KERNEL_CVE_CVSS}` defaults to empty, the High problem shows
+`(12 cve's)` in its operational data until the CVSS add-on is set up.
 
 ## Optional: rEFInd boot-order check
 
@@ -126,15 +131,15 @@ the newest kernel as the most recent entry, then reboot.
 3. it writes the highest base score into the host-level `{$KERNEL_CVE_CVSS}`
    macro as a suffix, e.g. `, highest CVSS 9.8`.
 
-Zabbix resolves user macros in trigger names when the event is generated, so the
-alert text becomes `Kernel update available (12 cve's, highest CVSS 9.8)` with no
-change to the trigger expression. The script runs entirely on the Zabbix server:
-hosts and proxies need no network access or extra files, and hosts behind a
-proxy work the same way.
+Zabbix resolves user macros in operational data while the problem is open, so
+the problem shows `From <running> to version <newest> (12 cve's, highest CVSS
+9.8)` and both numbers stay current - no trigger expression change needed. The
+script runs entirely on the Zabbix server: hosts and proxies need no network
+access or extra files, and hosts behind a proxy work the same way.
 
 CVSS is not available for every CVE - a score is often published late or never.
 When none of the pending CVEs is scored the suffix reads `, highest CVSS n/a`.
-Deleting the host macro restores the plain alert name.
+Deleting the host macro removes the CVSS text from the operational data.
 
 ### Requirements
 
@@ -190,16 +195,11 @@ nodata(/<server-host>/kernel.cve.cvss.push,2h)=1 or last(/<server-host>/kernel.c
 
 ## Notes and limitations
 
-* The CVE count and CVSS value shown in a problem **name** are captured when
-  the alert fires (Zabbix's default Single problem event generation). If a
-  second kernel update lands before the reboot, the open problem keeps the older
-  numbers; the live values are always in Latest data and the problem refreshes
-  after the next reboot/update cycle. (`Multiple` mode is not a fix: it creates
-  additional open problems rather than updating the existing one.)
-* The problem **operational data** uses `{ITEM.LASTVALUE}`, so its
-  `From <running> to version <newest>` text does track the latest values while
-  the problem is open (`{ITEM.VALUE}`, which is frozen at alert time, would
-  not).
+* The High problem's name is static; the live CVE count and CVSS are in its
+  operational data, which Zabbix re-resolves while the problem is open. That
+  relies on `{ITEM.LASTVALUE}`; `{ITEM.VALUE}` would be frozen at alert time.
+  (Zabbix's default Single problem event generation cannot update a problem
+  name, and `Multiple` mode only creates additional open problems.)
 * The CVSS figure is only as fresh as the last push run and NVD's data.
 * Host macro updates are configuration changes (they appear in the audit log)
   but happen only when a value changes.
