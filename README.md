@@ -190,6 +190,12 @@ nodata(/<server-host>/kernel.cve.cvss.push,2h)=1 or last(/<server-host>/kernel.c
 
 ## Notes and limitations
 
+* The CVE count and CVSS value shown in a problem are captured when the alert
+  fires (Zabbix's default Single problem event generation). If a second kernel
+  update lands before the reboot, the open problem keeps the older numbers; the
+  live values are always in Latest data and the problem refreshes after the next
+  reboot/update cycle. (`Multiple` mode is not a fix: it creates additional
+  open problems rather than updating the existing one.)
 * The CVSS figure is only as fresh as the last push run and NVD's data.
 * Host macro updates are configuration changes (they appear in the audit log)
   but happen only when a value changes.
