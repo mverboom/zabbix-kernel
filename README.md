@@ -38,9 +38,8 @@ Triggers:
 | Disaster | `Newest kernel is not the one rEFInd will boot` | the newest installed kernel is not the one with the newest boot file mtime (opt-in) |
 
 The High problem's operational data carries the live CVE count and, once enabled,
-the highest CVSS score: `From <running> to version <newest> (N cve's, highest
-CVSS x.y).` The names are static because Zabbix captures a problem name when the
-alert fires.
+the highest CVSS score: `CVEs N(▲x.y) <running> → <newest>`. The names are static
+because Zabbix captures a problem name when the alert fires.
 
 `kernel.cves` is derived from the kernel package changelogs shipped on the host
 (Debian/Ubuntu/Proxmox `changelog.Debian.gz`, or `rpm -q --changelog` on the
@@ -94,7 +93,8 @@ configuration above. The template group is `Templates`.
 | `{$KERNEL_BOOT_ENABLED}` | `0` | set to `1` to enable the rEFInd boot-order check |
 
 Because `{$KERNEL_CVE_CVSS}` defaults to empty, the High problem shows
-`(12 cve's)` in its operational data until the CVSS add-on is set up.
+`CVEs 12 <running> → <newest>` in its operational data until the CVSS add-on is
+set up.
 
 ## Optional: rEFInd boot-order check
 
@@ -129,16 +129,16 @@ the newest kernel as the most recent entry, then reboot.
 1. it reads every host's `kernel.cves.list` item through the Zabbix API;
 2. it looks each CVE up in a local cache, filling gaps from the NVD 2.0 API;
 3. it writes the highest base score into the host-level `{$KERNEL_CVE_CVSS}`
-   macro as a suffix, e.g. `, highest CVSS 9.8`.
+   macro as a suffix, e.g. `(▲9.8)`.
 
 Zabbix resolves user macros in operational data while the problem is open, so
-the problem shows `From <running> to version <newest> (12 cve's, highest CVSS
-9.8)` and both numbers stay current - no trigger expression change needed. The
+the problem shows `CVEs 12(▲9.8) <running> → <newest>` and both numbers stay
+current - no trigger expression change needed. The
 script runs entirely on the Zabbix server: hosts and proxies need no network
 access or extra files, and hosts behind a proxy work the same way.
 
 CVSS is not available for every CVE - a score is often published late or never.
-When none of the pending CVEs is scored the suffix reads `, highest CVSS n/a`.
+When none of the pending CVEs is scored the suffix reads `(▲n/a)`.
 Deleting the host macro removes the CVSS text from the operational data.
 
 ### Requirements
